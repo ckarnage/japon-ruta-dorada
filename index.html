@@ -81,6 +81,27 @@ const CITIES = {
   himeji:{n:"Himeji",ll:[34.8394,134.6939],trip:14}
 };
 
+// Tiempos de transporte estimados (puerta a puerta aprox.). ht = hotel -> primer lugar; ts[i] = lugar i -> lugar i+1
+const TIMES = {
+ 1:{ht:"≈1 h 20 min",ts:["≈1 h 20 min"]},
+ 2:{ht:"≈15 min",ts:["≈15 min","≈10 min"]},
+ 3:{ht:"≈20 min",ts:["≈20 min","≈10 min","≈10 min"]},
+ 4:{ht:"≈15 min",ts:["≈2 h 10 min","≈10 min","≈50 min"]},
+ 5:{ht:"≈25 min",ts:["≈1 h 25 min","≈1 h 10 min","≈25 min"]},
+ 6:{ht:"≈30 min",ts:["≈2 h 15 min","≈15 min"]},
+ 7:{ht:"≈45 min",ts:["≈45 min","≈50 min"]},
+ 8:{ht:"≈25 min",ts:["≈20 min","≈15 min","≈25 min","≈10 min"]},
+ 9:{ht:"≈30 min",ts:["≈10 min","≈35 min"]},
+ 10:{ht:"≈1 h 15 min",ts:["≈1 h 30 min (a pie)","≈1 h 10 min"]},
+ 11:{ht:"≈1 h",ts:["≈1 h","≈25 min"]},
+ 12:{ht:"≈35 min",ts:[]},
+ 13:{ht:"≈25 min",ts:["≈1 h 55 min","≈1 h 10 min"]},
+ 14:{ht:"≈1 h 40 min",ts:["≈5 min","≈1 h 10 min","≈25 min"]},
+ 15:{ht:"≈25 min",ts:["≈2 h 30 min","≈40 min"]},
+ 16:{ht:"≈45 min",ts:["≈30 min","≈10 min"]},
+ 17:{ht:"≈25 min",ts:["≈1 h"]}
+};
+
 const HOTELS = {
   daimon:{n:"Sotetsu Fresa Inn Tokyo-Daimon",ll:[35.6560,139.7547]},
   hakone:{n:"Hakone Pax Yoshino (ryokan)",ll:[35.2330,139.1000]},
@@ -182,15 +203,15 @@ const DAYS = [
 
 // Tramos entre ciudades (ruta general)
 const LEGS = [
-  {a:"narita",b:"tokio",lbl:"Día 1 · N'EX",day:1},
-  {a:"tokio",b:"nikko",lbl:"Día 4 · Tobu (ida y vuelta)",day:4,dash:true},
-  {a:"tokio",b:"hakone",lbl:"Día 5 · Romancecar",day:5},
-  {a:"hakone",b:"kioto",lbl:"Día 6 · Shinkansen",day:6},
-  {a:"kioto",b:"osaka",lbl:"Día 11 · JR Rapid",day:11},
-  {a:"osaka",b:"himeji",lbl:"Día 14 · JR (ida y vuelta)",day:14,dash:true},
-  {a:"osaka",b:"hiroshima",lbl:"Día 13 · Shinkansen (ida y vuelta)",day:13,dash:true},
-  {a:"osaka",b:"tokio",lbl:"Día 15 · Shinkansen",day:15},
-  {a:"tokio",b:"narita",lbl:"Día 17 · N'EX",day:17}
+  {a:"narita",b:"tokio",lbl:"Día 1 · N'EX · ≈1 h",day:1},
+  {a:"tokio",b:"nikko",lbl:"Día 4 · Tobu · ≈2 h (ida y vuelta)",day:4,dash:true},
+  {a:"tokio",b:"hakone",lbl:"Día 5 · Romancecar · ≈1 h 25 min",day:5},
+  {a:"hakone",b:"kioto",lbl:"Día 6 · Shinkansen · ≈2 h 15 min",day:6},
+  {a:"kioto",b:"osaka",lbl:"Día 11 · JR Rapid · ≈30 min",day:11},
+  {a:"osaka",b:"himeji",lbl:"Día 14 · JR · ≈1 h (ida y vuelta)",day:14,dash:true},
+  {a:"osaka",b:"hiroshima",lbl:"Día 13 · Shinkansen · ≈1 h 25 min (ida y vuelta)",day:13,dash:true},
+  {a:"osaka",b:"tokio",lbl:"Día 15 · Shinkansen · ≈2 h 30 min",day:15},
+  {a:"tokio",b:"narita",lbl:"Día 17 · N'EX · ≈1 h",day:17}
 ];
 
 // ---------- Utilidades ----------
@@ -267,11 +288,15 @@ function selectDay(n){
     L.marker([p[1],p[2]],{icon:icon(i+1,"poi")}).addTo(dayLayer)
       .bindPopup(`<b>${p[0]}</b><br>Día ${n} · ${fmt(dayDate(n))}`);
   });
+  (TIMES[n].ts||[]).forEach((t,i)=>{
+    const a=x.pois[i],b=x.pois[i+1];
+    L.marker([(a[1]+b[1])/2,(a[2]+b[2])/2],{icon:L.divIcon({className:"",html:`<div class="leg">🚆 ${t}</div>`,iconSize:null}),interactive:false}).addTo(dayLayer);
+  });
   const hl=hotelLine(n), hp=[hl.h.ll, [hl.f[1],hl.f[2]]];
   L.polyline(hp,{color:"#2e9d4f",weight:3,dashArray:"2 8",lineCap:"round"}).addTo(dayLayer);
   L.marker(hl.h.ll,{icon:icon("🛏","hotel"),zIndexOffset:500}).addTo(dayLayer)
     .bindPopup(`<b>🛏 ${hl.h.n}</b><br>Hotel de la noche anterior<br><small>Ubicación aproximada</small>`);
-  L.marker([(hp[0][0]+hp[1][0])/2,(hp[0][1]+hp[1][1])/2],{icon:L.divIcon({className:"",html:`<div class="leg g">${fmtKm(hl.dist)}</div>`,iconSize:null}),interactive:false}).addTo(dayLayer);
+  L.marker([(hp[0][0]+hp[1][0])/2,(hp[0][1]+hp[1][1])/2],{icon:L.divIcon({className:"",html:`<div class="leg g">${fmtKm(hl.dist)} · ${TIMES[n].ht}</div>`,iconSize:null}),interactive:false}).addTo(dayLayer);
   const b=L.latLngBounds(pts.concat([hl.h.ll]));
   map.fitBounds(b.pad(.3),{maxZoom:14,animate:true});
   render();
@@ -284,7 +309,8 @@ function render(){
       <dt>Lugares</dt><dd>${x.pois.map((p,i)=>`<span class="chip">${i+1}. ${p[0]}</span>`).join("")}</dd>
       <dt>Logística y traslados</dt><dd>${x.log}</dd>
       <dt>Alojamiento</dt><dd>${x.hotel}<br><small>${x.hc} MXN por persona/noche</small></dd>
-      <dt>Del hotel al primer lugar</dt><dd>${(()=>{const q=hotelLine(x.d);return `🛏 ${q.h.n} → ${q.f[0]}: <b>${fmtKm(q.dist)}</b> en línea recta`})()}</dd>
+      <dt>Del hotel al primer lugar</dt><dd>${(()=>{const q=hotelLine(x.d);return `🛏 ${q.h.n} → ${q.f[0]}: <b>${fmtKm(q.dist)}</b> en línea recta · <b>${TIMES[x.d].ht}</b> en transporte`})()}</dd>
+      <dt>Tiempos de traslado</dt><dd>${x.pois.slice(1).map((p,i)=>`<span class="chip">${i+1} → ${i+2} · ${TIMES[x.d].ts[i]}</span>`).join("")||"Sin traslados entre lugares"}</dd>
       <dt>Transporte</dt><dd>${x.tc} MXN</dd>
       <dt>Dinero de bolsillo</dt><dd>${x.pk} MXN</dd>
       ${x.tip?`<dt>Tip</dt><dd>${x.tip}</dd>`:""}
