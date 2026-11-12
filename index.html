@@ -83,11 +83,11 @@ const CITIES = {
 
 // Tiempos de transporte estimados (puerta a puerta aprox.). ht = hotel -> primer lugar; ts[i] = lugar i -> lugar i+1
 const TIMES = {
- 1:{ht:"≈1 h 20 min",ts:["≈1 h 20 min"]},
- 2:{ht:"≈15 min",ts:["≈15 min","≈10 min"]},
- 3:{ht:"≈20 min",ts:["≈20 min","≈10 min","≈10 min"]},
- 4:{ht:"≈15 min",ts:["≈2 h 10 min","≈10 min","≈50 min"]},
- 5:{ht:"≈25 min",ts:["≈1 h 25 min","≈1 h 10 min","≈25 min"]},
+ 1:{ht:"≈1 h 35 min",ts:["≈1 h 35 min"]},
+ 2:{ht:"≈45 min",ts:["≈15 min","≈10 min"]},
+ 3:{ht:"≈30 min",ts:["≈20 min","≈10 min","≈10 min"]},
+ 4:{ht:"≈45 min",ts:["≈2 h 10 min","≈10 min","≈50 min"]},
+ 5:{ht:"≈15 min",ts:["≈1 h 25 min","≈1 h 10 min","≈25 min"]},
  6:{ht:"≈30 min",ts:["≈1 h 45 min (Hikari)","≈15 min"]},
  7:{ht:"≈45 min",ts:["≈45 min","≈50 min"]},
  8:{ht:"≈25 min",ts:["≈20 min","≈15 min","≈25 min","≈10 min"]},
@@ -98,16 +98,15 @@ const TIMES = {
  13:{ht:"≈25 min",ts:["≈1 h 55 min","≈1 h 10 min"]},
  14:{ht:"≈1 h 40 min",ts:["≈5 min","≈1 h 10 min","≈25 min"]},
  15:{ht:"≈25 min",ts:["≈2 h 30 min","≈40 min"]},
- 16:{ht:"≈45 min",ts:["≈30 min","≈10 min"]},
- 17:{ht:"≈25 min",ts:["≈1 h"]}
+ 16:{ht:"≈55 min",ts:["≈30 min","≈10 min"]},
+ 17:{ht:"≈15 min",ts:["≈1 h 25 min"]}
 };
 
 const HOTELS = {
-  daimon:{n:"Sotetsu Fresa Inn Tokyo-Daimon",ll:[35.6560,139.7547]},
+  shinjuku:{n:"Nishitetsu Inn Shinjuku",ll:[35.6935,139.6960]},
   hakone:{n:"Hakone Pax Yoshino (ryokan)",ll:[35.2335,139.0975]},
   kioto:{n:"Daiwa Roynet Hotel Kyoto Ekimae PREMIER",ll:[34.9872,135.7608]},
-  osaka:{n:"karaksa hotel Osaka Namba",ll:[34.6712,135.4985]},
-  tawara:{n:"APA Hotel Asakusa Tawaramachi",ll:[35.7099,139.7915]}
+  osaka:{n:"karaksa hotel Osaka Namba",ll:[34.6712,135.4985]}
 };
 // Hotel donde despiertas: el de la noche anterior (día 1: el de llegada; día 17: el de la noche 16)
 const wakeHotel = d => (DAYS[d-2]&&DAYS[d-2].h) || DAYS[d-1].h || DAYS[d-2].h;
@@ -117,23 +116,23 @@ const hotelLine = d => { const h=HOTELS[wakeHotel(d)], f=DAYS[d-1].pois[0]; retu
 const fmtKm = k => k<10?k.toFixed(1)+" km":Math.round(k)+" km";
 
 const DAYS = [
- {d:1,city:"tokio",h:"daimon",title:"Llegada a Narita",plan:"Llegada a Narita. Traslado a hotel y descanso.",
-  pois:[["Aeropuerto de Narita",35.7720,140.3929],["Hotel en Asakusa / Daimon",35.7148,139.7967]],
+ {d:1,city:"tokio",h:"shinjuku",title:"Llegada a Narita",plan:"Llegada a Narita. Traslado a hotel y descanso.",
+  pois:[["Aeropuerto de Narita",35.7720,140.3929],["Hotel Nishitetsu Inn Shinjuku",35.6935,139.6960]],
   log:"Tren Narita Express (N'EX) desde el aeropuerto hasta el centro de Tokio.",
-  hotel:"Sotetsu Fresa Inn Daimon / APA Hotel Asakusa",hc:"$700 - $1,000",tc:"$325 (mitad del boleto redondo)",pk:"$1,000",
+  hotel:"Nishitetsu Inn Shinjuku",hc:"≈US$140–155 (≈$2,500–2,800 MXN; estimado, sin tarifa publicada para nov-2027)",tc:"$325 (mitad del boleto redondo)",pk:"$1,000",
   tip:"Retirar yenes en cajeros 7-Eleven. Activar Suica/Pasmo en Apple Wallet."},
- {d:2,city:"tokio",h:"daimon",title:"Asakusa, Ueno y Akihabara",plan:"Asakusa (Senso-ji), Parque Ueno y Akihabara.",
+ {d:2,city:"tokio",h:"shinjuku",title:"Asakusa, Ueno y Akihabara",plan:"Asakusa (Senso-ji), Parque Ueno y Akihabara.",
   pois:[["Senso-ji (Asakusa)",35.7148,139.7967],["Parque Ueno",35.7156,139.7745],["Akihabara",35.6984,139.7731]],
   log:"Metro/trenes locales con la tarjeta Suica.",
-  hotel:"Sotetsu Fresa Inn Daimon / APA Hotel Asakusa",hc:"$700 - $1,000",tc:"$0 (saldo Suica)",pk:"$1,000",tip:""},
- {d:3,city:"tokio",h:"daimon",title:"Meiji Gaien, Harajuku, Shibuya, Shinjuku",plan:"Túnel otoñal de Meiji Jingu Gaien, Harajuku, Shibuya y Shinjuku.",
+  hotel:"Nishitetsu Inn Shinjuku",hc:"≈US$140–155 (≈$2,500–2,800 MXN; estimado, sin tarifa publicada para nov-2027)",tc:"$0 (saldo Suica)",pk:"$1,000",tip:""},
+ {d:3,city:"tokio",h:"shinjuku",title:"Meiji Gaien, Harajuku, Shibuya, Shinjuku",plan:"Túnel otoñal de Meiji Jingu Gaien, Harajuku, Shibuya y Shinjuku.",
   pois:[["Meiji Jingu Gaien (túnel de ginkgos)",35.6753,139.7190],["Harajuku",35.6702,139.7027],["Shibuya",35.6595,139.7005],["Shinjuku",35.6896,139.7006]],
   log:"Metro/trenes locales con la tarjeta Suica.",
-  hotel:"Sotetsu Fresa Inn Daimon / APA Hotel Asakusa",hc:"$700 - $1,000",tc:"$0 (saldo Suica)",pk:"$1,000",tip:""},
- {d:4,city:"tokio",h:"daimon",title:"Excursión a Nikko (follaje otoñal)",plan:"Día de campo desde Tokio: Santuario Toshogu, puente Shinkyo y cascada Kegon. Regreso a Tokio por la noche.",
+  hotel:"Nishitetsu Inn Shinjuku",hc:"≈US$140–155 (≈$2,500–2,800 MXN; estimado, sin tarifa publicada para nov-2027)",tc:"$0 (saldo Suica)",pk:"$1,000",tip:""},
+ {d:4,city:"tokio",h:"shinjuku",title:"Excursión a Nikko (follaje otoñal)",plan:"Día de campo desde Tokio: Santuario Toshogu, puente Shinkyo y cascada Kegon. Regreso a Tokio por la noche.",
   pois:[["Asakusa (salida tren Tobu)",35.7112,139.7966],["Puente Shinkyo",36.7499,139.5985],["Santuario Toshogu",36.7581,139.5990],["Cascada Kegon",36.7388,139.5014]],
   log:"Tren Tobu Limited Express desde Asakusa a Tobu-Nikko (~2 h) y autobús Tobu hasta Chuzenji/Kegon.",
-  hotel:"Sotetsu Fresa Inn Daimon / APA Hotel Asakusa (mismo hotel, regreso a Tokio)",hc:"$700 - $1,000",tc:"≈$1,400 (Nikko Pass All Area ¥8,000 ≈ $1,050 + recargo del expreso; verificar con Tobu)",pk:"$1,000",
+  hotel:"Nishitetsu Inn Shinjuku (mismo hotel, regreso a Tokio)",hc:"≈US$140–155 (≈$2,500–2,800 MXN; estimado, sin tarifa publicada para nov-2027)",tc:"≈$1,400 (Nikko Pass All Area ¥8,000 ≈ $1,050 + recargo del expreso; verificar con Tobu)",pk:"$1,000",
   tip:"Salir temprano (antes de las 8:00). El día siguiente se va a Hakone: dejar maletas listas. Los montes altos de Nikko tiñen antes; verificar pronóstico de follaje."},
  {d:5,city:"hakone",h:"hakone",title:"Tokio → Hakone",plan:"Viaje a Hakone. Teleférico, Lago Ashi y vistas del Monte Fuji.",
   pois:[["Shinjuku (salida Romancecar)",35.6896,139.7006],["Hakone-Yumoto",35.2328,139.1070],["Owakudani (teleférico)",35.2433,139.0206],["Lago Ashi",35.2050,139.0240]],
@@ -184,19 +183,19 @@ const DAYS = [
   log:"JR Special Rapid de Osaka a Himeji (~1 h), luego JR a Kobe y regreso a Osaka.",
   hotel:"karaksa hotel Osaka Namba / Sotetsu Fresa Inn Osaka-Namba",hc:"$700 - $1,000",tc:"≈$450 (JR ida y vuelta; estimado)",pk:"$1,500 (entradas ≈¥2,500 ≈ $330 + comida; Kobe beef es más caro)",
   tip:"Castillo de Himeji: 9:00–17:00, última entrada 16:00 (entrada ≈¥2,500 desde mar-2026); Koko-en cierra 17:00 (última entrada 16:30). Llegar temprano. Probar Kobe beef en comida, no en cena."},
- {d:15,city:"tokio",h:"tawara",title:"Osaka → Tokio · Odaiba",plan:"Regreso matutino a Tokio. Tarde en Odaiba (Estatua Gundam).",
+ {d:15,city:"tokio",h:"shinjuku",title:"Osaka → Tokio · Odaiba",plan:"Regreso matutino a Tokio. Tarde en Odaiba (Estatua Gundam).",
   pois:[["Shin-Osaka",34.7334,135.5003],["Estación de Tokio",35.6812,139.7671],["Odaiba (Gundam)",35.6252,139.7753]],
   log:"Shinkansen directo de Shin-Osaka a Tokio.",
-  hotel:"APA Hotel Asakusa Tawaramachi / Hotel SUI Ginza",hc:"$700 - $1,000",tc:"$1,850 (Shinkansen Nozomi, sencillo)",pk:"$1,000",
+  hotel:"Nishitetsu Inn Shinjuku",hc:"≈US$140–155 (≈$2,500–2,800 MXN; estimado, sin tarifa publicada para nov-2027)",tc:"$1,850 (Shinkansen Nozomi, sencillo)",pk:"$1,000",
   tip:"Pedir asiento E (lado izquierdo) para intentar ver el Monte Fuji."},
- {d:16,city:"tokio",h:"tawara",title:"teamLab Planets y compras",plan:"Arte inmersivo (teamLab Planets) y últimas compras en Ginza o Tsukiji.",
+ {d:16,city:"tokio",h:"shinjuku",title:"teamLab Planets y compras",plan:"Arte inmersivo (teamLab Planets) y últimas compras en Ginza o Tsukiji.",
   pois:[["teamLab Planets",35.6490,139.7897],["Tsukiji",35.6655,139.7707],["Ginza",35.6717,139.7640]],
   log:"Metro con la tarjeta Suica.",
-  hotel:"APA Hotel Asakusa Tawaramachi / Hotel SUI Ginza",hc:"$700 - $1,000",tc:"$0 (saldo Suica)",pk:"$1,000",
+  hotel:"Nishitetsu Inn Shinjuku",hc:"≈US$140–155 (≈$2,500–2,800 MXN; estimado, sin tarifa publicada para nov-2027)",tc:"$0 (saldo Suica)",pk:"$1,000",
   tip:"Reservar teamLab Planets 1 mes antes; los horarios de mañana se agotan rápido."},
  {d:17,city:"narita",title:"Regreso a México",plan:"Check-out del hotel y vuelo de regreso a México.",
-  pois:[["Centro de Tokio",35.6812,139.7671],["Aeropuerto de Narita",35.7720,140.3929]],
-  log:"Tren Narita Express (N'EX) desde el centro de Tokio al aeropuerto.",
+  pois:[["Estación de Shinjuku (N'EX directo)",35.6896,139.7006],["Aeropuerto de Narita",35.7720,140.3929]],
+  log:"Tren Narita Express (N'EX) directo desde Shinjuku al aeropuerto, sin transbordos.",
   hotel:"Ninguno (día de regreso)",hc:"-",tc:"$325 (mitad del boleto redondo)",pk:"$800",
   tip:"Llegar a Narita 3 horas antes de la salida del vuelo."}
 ];
@@ -211,7 +210,7 @@ const LEGS = [
   {a:"osaka",b:"himeji",lbl:"Día 14 · JR · ≈1 h (ida y vuelta)",day:14,dash:true},
   {a:"osaka",b:"hiroshima",lbl:"Día 13 · Shinkansen · ≈1 h 25 min (ida y vuelta)",day:13,dash:true},
   {a:"osaka",b:"tokio",lbl:"Día 15 · Shinkansen · ≈2 h 30 min",day:15},
-  {a:"tokio",b:"narita",lbl:"Día 17 · N'EX · ≈1 h",day:17}
+  {a:"tokio",b:"narita",lbl:"Día 17 · N'EX · ≈1 h 25 min desde Shinjuku",day:17}
 ];
 
 // ---------- Utilidades ----------
