@@ -1,0 +1,285 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ruta Dorada Japón · Noviembre 2027</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<style>
+:root{
+  --bg:#faf7f2; --panel:#ffffff; --ink:#23201c; --muted:#6f685f; --line:#e6dfd3;
+  --accent:#b3261e; --gold:#b7871f; --chip:#f3ede2; --sel:#fff4e0;
+}
+@media (prefers-color-scheme: dark){
+  :root{ --bg:#17150f; --panel:#201d16; --ink:#f1ebdf; --muted:#a39a8a; --line:#38332a; --accent:#ff6b5e; --gold:#e0b04a; --chip:#2b2720; --sel:#33291a; }
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--ink);display:flex;flex-direction:column}
+header{padding:12px 16px;border-bottom:1px solid var(--line);background:var(--panel);display:flex;gap:16px;align-items:center;flex-wrap:wrap}
+header h1{font-size:18px;margin:0;font-weight:700}
+header h1 span{color:var(--accent)}
+.sp{flex:1}
+header label{font-size:13px;color:var(--muted);display:flex;gap:6px;align-items:center}
+header input[type=date]{font:inherit;padding:4px 6px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink)}
+button{font:inherit;cursor:pointer;border:1px solid var(--line);background:var(--chip);color:var(--ink);border-radius:8px;padding:6px 12px}
+button:hover{border-color:var(--accent)}
+main{flex:1;display:flex;min-height:0}
+#side{width:410px;max-width:45%;overflow-y:auto;background:var(--panel);border-right:1px solid var(--line)}
+#map{flex:1;min-width:0}
+.card{padding:11px 14px;border-bottom:1px solid var(--line);cursor:pointer;display:flex;gap:11px}
+.card:hover{background:var(--chip)}
+.card.sel{background:var(--sel);box-shadow:inset 3px 0 var(--accent)}
+.badge{flex:none;width:34px;height:34px;border-radius:50%;background:var(--accent);color:#fff;display:grid;place-items:center;font-weight:700;font-size:14px}
+.card .t{font-weight:600;font-size:14px}
+.card .d{font-size:12px;color:var(--muted);margin-top:1px}
+.card .s{font-size:13px;margin-top:3px}
+.detail{padding:0 14px 12px 59px;font-size:13px;display:none;border-bottom:1px solid var(--line)}
+.card.sel + .detail{display:block;background:var(--sel)}
+.detail dt{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--gold);margin-top:8px;font-weight:700}
+.detail dd{margin:2px 0 0}
+.nav{display:flex;gap:8px;margin-top:10px}
+.chip{display:inline-block;background:var(--chip);border-radius:10px;padding:1px 8px;font-size:12px;margin:2px 3px 0 0}
+.pin{background:var(--accent);color:#fff;border:2px solid #fff;border-radius:50%;width:30px;height:30px;display:grid;place-items:center;font:700 11px sans-serif;box-shadow:0 1px 5px rgba(0,0,0,.45)}
+.pin.city{width:auto;min-width:30px;padding:0 8px;border-radius:15px;height:28px;background:#23201c;white-space:nowrap}
+.pin.poi{background:var(--gold);width:24px;height:24px;font-size:11px}
+.leaflet-popup-content{font:13px/1.4 -apple-system,sans-serif;margin:10px 12px}
+.leg{font-size:11px;background:#fffdf7;color:#23201c;border:1px solid #c9b98f;border-radius:6px;padding:1px 6px;white-space:nowrap}
+@media (max-width:760px){
+  main{flex-direction:column}
+  #side{width:100%;max-width:none;height:45%;border-right:0;border-bottom:1px solid var(--line);order:2}
+  #map{order:1;flex:1}
+  header{padding:10px 16px}
+}
+</style>
+</head>
+<body>
+<header>
+  <h1>🗾 Ruta Dorada <span>Japón</span> · Noviembre 2027</h1>
+  <div class="sp"></div>
+  <label>Inicio del viaje <input type="date" id="start"></label>
+  <button id="all">Ver ruta completa</button>
+</header>
+<main>
+  <div id="side"></div>
+  <div id="map"></div>
+</main>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script>
+// ---------- Datos del itinerario ----------
+const CITIES = {
+  narita:{n:"Narita",ll:[35.7720,140.3929]},
+  tokio:{n:"Tokio",ll:[35.6762,139.6503]},
+  hakone:{n:"Hakone",ll:[35.2324,139.1069]},
+  kioto:{n:"Kioto",ll:[35.0116,135.7681]},
+  osaka:{n:"Osaka",ll:[34.6937,135.5023]},
+  hiroshima:{n:"Hiroshima",ll:[34.3853,132.4553],trip:11},
+  nikko:{n:"Nikko",ll:[36.7581,139.5990],trip:4},
+  himeji:{n:"Himeji",ll:[34.8394,134.6939],trip:12}
+};
+
+const DAYS = [
+ {d:1,city:"tokio",title:"Llegada a Narita",plan:"Llegada a Narita. Traslado a hotel y descanso.",
+  pois:[["Aeropuerto de Narita",35.7720,140.3929],["Hotel en Asakusa / Daimon",35.7148,139.7967]],
+  log:"Tren Narita Express (N'EX) desde el aeropuerto hasta el centro de Tokio.",
+  hotel:"Sotetsu Fresa Inn Daimon / APA Hotel Asakusa",hc:"$700 - $1,000",tc:"$325 (mitad del boleto redondo)",pk:"$1,000",
+  tip:"Retirar yenes en cajeros 7-Eleven. Activar Suica/Pasmo en Apple Wallet."},
+ {d:2,city:"tokio",title:"Asakusa, Ueno y Akihabara",plan:"Asakusa (Senso-ji), Parque Ueno y Akihabara.",
+  pois:[["Senso-ji (Asakusa)",35.7148,139.7967],["Parque Ueno",35.7156,139.7745],["Akihabara",35.6984,139.7731]],
+  log:"Metro/trenes locales con la tarjeta Suica.",
+  hotel:"Sotetsu Fresa Inn Daimon / APA Hotel Asakusa",hc:"$700 - $1,000",tc:"$0 (saldo Suica)",pk:"$1,000",tip:""},
+ {d:3,city:"tokio",title:"Meiji Gaien, Harajuku, Shibuya, Shinjuku",plan:"Túnel otoñal de Meiji Jingu Gaien, Harajuku, Shibuya y Shinjuku.",
+  pois:[["Meiji Jingu Gaien (túnel de ginkgos)",35.6753,139.7190],["Harajuku",35.6702,139.7027],["Shibuya",35.6595,139.7005],["Shinjuku",35.6896,139.7006]],
+  log:"Metro/trenes locales con la tarjeta Suica.",
+  hotel:"Sotetsu Fresa Inn Daimon / APA Hotel Asakusa",hc:"$700 - $1,000",tc:"$0 (saldo Suica)",pk:"$1,000",tip:""},
+ {d:4,city:"tokio",title:"Excursión a Nikko (follaje otoñal)",plan:"Día de campo desde Tokio: Santuario Toshogu, puente Shinkyo y cascada Kegon. Regreso a Tokio por la noche.",
+  pois:[["Asakusa (salida tren Tobu)",35.7112,139.7966],["Puente Shinkyo",36.7499,139.5985],["Santuario Toshogu",36.7581,139.5990],["Cascada Kegon",36.7388,139.5014]],
+  log:"Tren Tobu Limited Express desde Asakusa a Tobu-Nikko (~2 h) y autobús Tobu hasta Chuzenji/Kegon.",
+  hotel:"Sotetsu Fresa Inn Daimon / APA Hotel Asakusa (mismo hotel, regreso a Tokio)",hc:"$700 - $1,000",tc:"≈$1,200 (Nikko Pass + expreso; estimado)",pk:"$1,000",
+  tip:"Salir temprano (antes de las 8:00). El día siguiente se va a Hakone: dejar maletas listas. Los montes altos de Nikko tiñen antes; verificar pronóstico de follaje."},
+ {d:5,city:"hakone",title:"Tokio → Hakone",plan:"Viaje a Hakone. Teleférico, Lago Ashi y vistas del Monte Fuji.",
+  pois:[["Shinjuku (salida Romancecar)",35.6896,139.7006],["Hakone-Yumoto",35.2328,139.1070],["Owakudani (teleférico)",35.2433,139.0206],["Lago Ashi",35.2050,139.0240]],
+  log:"Tren Odakyu Romancecar desde Shinjuku a Hakone. Usar transportes del parque.",
+  hotel:"Ryokan con Onsen (ej. Hakone Pax Yoshino)",hc:"$3,500 - $4,500 (incluye cena tradicional y desayuno)",tc:"$950 (Romancecar + Hakone Free Pass 2 días)",pk:"$500 (comidas ligeras)",
+  tip:"Usar el servicio de envío de maletas (Takuhaibin) de Tokio a Kioto."},
+ {d:6,city:"kioto",title:"Hakone → Kioto",plan:"Viaje a Kioto y tarde en los arcos de Fushimi Inari.",
+  pois:[["Estación Odawara",35.2564,139.1551],["Estación de Kioto",34.9858,135.7588],["Fushimi Inari",34.9671,135.7727]],
+  log:"Tren Bala (Shinkansen) desde Odawara hasta la estación de Kioto.",
+  hotel:"Daiwa Roynet Kyoto Ekimae / APA Hotel Kyoto",hc:"$700 - $1,000",tc:"$1,550 (Shinkansen Nozomi, sencillo)",pk:"$1,000",
+  tip:"A Odawara se llega bajando de Hakone; ahí se toma el tren bala."},
+ {d:7,city:"kioto",title:"Kinkaku-ji, Arashiyama, Kiyomizu-dera",plan:"Pabellón Dorado, Bosque de Bambú e iluminación nocturna en Kiyomizu-dera.",
+  pois:[["Kinkaku-ji (Pabellón Dorado)",35.0394,135.7292],["Bosque de Bambú de Arashiyama",35.0170,135.6713],["Kiyomizu-dera",34.9949,135.7850]],
+  log:"Autobuses y metro de Kioto con la tarjeta Suica.",
+  hotel:"Daiwa Roynet Kyoto Ekimae / APA Hotel Kyoto",hc:"$700 - $1,000",tc:"$0 (saldo Suica)",pk:"$1,000",
+  tip:"Empacar bufanda: por la noche bajará a menos de 10 °C."},
+ {d:8,city:"kioto",title:"Kioto clásico: Nijo, Gion y Camino de la Filosofía",plan:"Castillo Nijo, mercado Nishiki, Gion y tarde de follaje en Eikando y el Camino de la Filosofía.",
+  pois:[["Castillo Nijo",35.0142,135.7482],["Mercado Nishiki",35.0050,135.7646],["Gion",35.0037,135.7756],["Eikando",35.0147,135.7948],["Camino de la Filosofía",35.0270,135.7948]],
+  log:"Autobuses y metro de Kioto con la tarjeta Suica.",
+  hotel:"Daiwa Roynet Kyoto Ekimae / APA Hotel Kyoto",hc:"$700 - $1,000",tc:"$0 (saldo Suica)",pk:"$1,000",
+  tip:"Eikando es de los primeros templos en teñirse de rojo; ir al final de la tarde para ver la iluminación."},
+ {d:9,city:"osaka",title:"Nara y Osaka",plan:"Mañana: ciervos en Nara. Tarde: Castillo de Osaka y noche en Dotonbori.",
+  pois:[["Parque de Nara (ciervos)",34.6851,135.8430],["Castillo de Osaka",34.6873,135.5262],["Dotonbori",34.6687,135.5013]],
+  log:"Trenes locales (JR Rapid) para saltar entre Kioto, Nara y Osaka.",
+  hotel:"karaksa hotel Osaka Namba / Sotetsu Fresa Inn Osaka-Namba",hc:"$700 - $1,000",tc:"$75 (tren local Kioto–Osaka)",pk:"$1,000",
+  tip:"El tren de Kioto a Osaka tarda unos 30 minutos."},
+ {d:10,city:"osaka",title:"Universal Studios Japan",plan:"Día completo en Universal Studios Japan (USJ).",
+  pois:[["Universal Studios Japan",34.6654,135.4323]],
+  log:"Tren local JR Yumesaki hasta la estación Universal City.",
+  hotel:"karaksa hotel Osaka Namba / Sotetsu Fresa Inn Osaka-Namba",hc:"$700 - $1,000",tc:"$0 (saldo Suica)",pk:"$3,600 (≈$1,100 entrada + $2,000 Express Pass + $500 comida)",
+  tip:"Comprar entradas y Express Pass con 2 meses de anticipación exactos (web oficial o Klook)."},
+ {d:11,city:"osaka",title:"Hiroshima y Miyajima",plan:"Excursión a Hiroshima (Parque de la Paz) y la isla de Miyajima.",
+  pois:[["Shin-Osaka",34.7334,135.5003],["Parque de la Paz, Hiroshima",34.3955,132.4536],["Isla de Miyajima (Itsukushima)",34.2959,132.3199]],
+  log:"Shinkansen Osaka–Hiroshima ida y vuelta + ferry a Miyajima.",
+  hotel:"karaksa hotel Osaka Namba / Sotetsu Fresa Inn Osaka-Namba",hc:"$700 - $1,000",tc:"$2,600 (Shinkansen ida y vuelta)",pk:"$1,000",tip:""},
+ {d:12,city:"osaka",title:"Castillo de Himeji y Kobe",plan:"Mañana en el Castillo de Himeji y jardín Koko-en. Tarde en Kobe: Kitano y puerto (Harborland).",
+  pois:[["Castillo de Himeji",34.8394,134.6939],["Jardín Koko-en",34.8400,134.6970],["Barrio Kitano (Kobe)",34.6992,135.1936],["Harborland / Port Tower",34.6779,135.1862]],
+  log:"JR Special Rapid de Osaka a Himeji (~1 h), luego JR a Kobe y regreso a Osaka.",
+  hotel:"karaksa hotel Osaka Namba / Sotetsu Fresa Inn Osaka-Namba",hc:"$700 - $1,000",tc:"≈$450 (JR ida y vuelta; estimado)",pk:"$1,200 (entradas y comida; Kobe beef es más caro)",
+  tip:"El castillo cierra a las 17:00: llegar temprano. Probar Kobe beef o yakiniku en comida, no en cena."},
+ {d:13,city:"tokio",title:"Osaka → Tokio · Odaiba",plan:"Regreso matutino a Tokio. Tarde en Odaiba (Estatua Gundam).",
+  pois:[["Shin-Osaka",34.7334,135.5003],["Estación de Tokio",35.6812,139.7671],["Odaiba (Gundam)",35.6252,139.7753]],
+  log:"Shinkansen directo de Shin-Osaka a Tokio.",
+  hotel:"APA Hotel Asakusa Tawaramachi / Hotel SUI Ginza",hc:"$700 - $1,000",tc:"$1,850 (Shinkansen Nozomi, sencillo)",pk:"$1,000",
+  tip:"Pedir asiento E (lado izquierdo) para intentar ver el Monte Fuji."},
+ {d:14,city:"tokio",title:"teamLab Planets y compras",plan:"Arte inmersivo (teamLab Planets) y últimas compras en Ginza o Tsukiji.",
+  pois:[["teamLab Planets",35.6490,139.7897],["Tsukiji",35.6655,139.7707],["Ginza",35.6717,139.7640]],
+  log:"Metro con la tarjeta Suica.",
+  hotel:"APA Hotel Asakusa Tawaramachi / Hotel SUI Ginza",hc:"$700 - $1,000",tc:"$0 (saldo Suica)",pk:"$1,000",
+  tip:"Reservar teamLab Planets 1 mes antes; los horarios de mañana se agotan rápido."},
+ {d:15,city:"narita",title:"Regreso a México",plan:"Check-out del hotel y vuelo de regreso a México.",
+  pois:[["Centro de Tokio",35.6812,139.7671],["Aeropuerto de Narita",35.7720,140.3929]],
+  log:"Tren Narita Express (N'EX) desde el centro de Tokio al aeropuerto.",
+  hotel:"Ninguno (día de regreso)",hc:"-",tc:"$325 (mitad del boleto redondo)",pk:"$800",
+  tip:"Llegar a Narita 3 horas antes de la salida del vuelo."}
+];
+
+// Tramos entre ciudades (ruta general)
+const LEGS = [
+  {a:"narita",b:"tokio",lbl:"Día 1 · N'EX",day:1},
+  {a:"tokio",b:"nikko",lbl:"Día 4 · Tobu (ida y vuelta)",day:4,dash:true},
+  {a:"tokio",b:"hakone",lbl:"Día 5 · Romancecar",day:5},
+  {a:"hakone",b:"kioto",lbl:"Día 6 · Shinkansen",day:6},
+  {a:"kioto",b:"osaka",lbl:"Día 9 · JR Rapid",day:9},
+  {a:"osaka",b:"himeji",lbl:"Día 12 · JR (ida y vuelta)",day:12,dash:true},
+  {a:"osaka",b:"hiroshima",lbl:"Día 11 · Shinkansen (ida y vuelta)",day:11,dash:true},
+  {a:"osaka",b:"tokio",lbl:"Día 13 · Shinkansen",day:13},
+  {a:"tokio",b:"narita",lbl:"Día 15 · N'EX",day:15}
+];
+
+// ---------- Utilidades ----------
+const $ = s => document.querySelector(s);
+const startEl = $("#start");
+let startDate = new Date("2027-11-06T12:00:00");
+try{ const s = localStorage.getItem("japon-start-v2"); if(s) startDate = new Date(s+"T12:00:00"); }catch(e){}
+startEl.value = startDate.toISOString().slice(0,10);
+const dayDate = d => { const x = new Date(startDate); x.setDate(x.getDate()+d-1); return x; };
+const fmt = d => d.toLocaleDateString("es-MX",{weekday:"short",day:"numeric",month:"short",year:"numeric"});
+const fmtShort = d => d.toLocaleDateString("es-MX",{day:"numeric",month:"short"});
+
+// ---------- Mapa ----------
+const map = L.map("map",{zoomControl:true}).setView([35.2,136.5],6);
+L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",{
+  maxZoom:18, attribution:"© OpenStreetMap"
+}).addTo(map);
+
+const overview = L.layerGroup().addTo(map);
+const dayLayer = L.layerGroup().addTo(map);
+let selected = null;
+
+const icon = (txt,cls="") => L.divIcon({className:"",html:`<div class="pin ${cls}">${txt}</div>`,iconSize:null,iconAnchor:[15,15]});
+
+function cityDays(key){
+  return DAYS.filter(x=>x.city===key).map(x=>x.d);
+}
+function rangeLabel(ds){
+  const out=[]; let s=ds[0],p=ds[0];
+  for(let i=1;i<=ds.length;i++){
+    if(ds[i]===p+1){p=ds[i];continue}
+    out.push(s===p?`${s}`:`${s}-${p}`); s=ds[i]; p=ds[i];
+  }
+  return out.join(", ");
+}
+
+function drawOverview(){
+  overview.clearLayers();
+  LEGS.forEach(l=>{
+    const A=CITIES[l.a].ll,B=CITIES[l.b].ll;
+    const line=L.polyline([A,B],{color:"#b3261e",weight:3,opacity:.8,dashArray:l.dash?"8 8":null}).addTo(overview);
+    line.on("click",()=>selectDay(l.day));
+    const mid=[(A[0]+B[0])/2,(A[1]+B[1])/2];
+    L.marker(mid,{icon:L.divIcon({className:"",html:`<div class="leg">${l.lbl}</div>`,iconSize:null}),interactive:false}).addTo(overview);
+  });
+  Object.keys(CITIES).forEach(k=>{
+    const ds=cityDays(k);
+    const c=CITIES[k]; const label = ds.length?`${c.n} · D${rangeLabel(ds)}`:`${c.n} · D${c.trip}`;
+    const mk=L.marker(CITIES[k].ll,{icon:L.divIcon({className:"",html:`<div class="pin city">${label}</div>`,iconSize:null,iconAnchor:[0,14]})}).addTo(overview);
+    const list = ds.map(d=>{const x=DAYS[d-1];return `<div><b>Día ${d}</b> · ${fmtShort(dayDate(d))} — ${x.title}</div>`}).join("")
+      || `<div><b>Día ${CITIES[k].trip}</b> · ${fmtShort(dayDate(CITIES[k].trip))} — ${DAYS[CITIES[k].trip-1].title}</div>`;
+    mk.bindPopup(`<b>${CITIES[k].n}</b>${list}`);
+  });
+}
+
+function showAll(){
+  selected=null; dayLayer.clearLayers();
+  drawOverview(); map.addLayer(overview);
+  map.fitBounds(L.latLngBounds(Object.values(CITIES).map(c=>c.ll)).pad(.2));
+  render();
+}
+
+function selectDay(n){
+  selected=n; const x=DAYS[n-1];
+  map.removeLayer(overview); dayLayer.clearLayers();
+  const pts=x.pois.map(p=>[p[1],p[2]]);
+  if(pts.length>1) L.polyline(pts,{color:"#b3261e",weight:3,dashArray:"6 6"}).addTo(dayLayer);
+  x.pois.forEach((p,i)=>{
+    L.marker([p[1],p[2]],{icon:icon(i+1,"poi")}).addTo(dayLayer)
+      .bindPopup(`<b>${p[0]}</b><br>Día ${n} · ${fmt(dayDate(n))}`);
+  });
+  const b=L.latLngBounds(pts);
+  if(pts.length>1) map.fitBounds(b.pad(.3),{maxZoom:14,animate:true}); else map.setView(pts[0],14);
+  render();
+  const el=document.getElementById("card"+n); if(el) el.scrollIntoView({block:"nearest",behavior:"smooth"});
+}
+
+function render(){
+  $("#side").innerHTML = DAYS.map(x=>{
+    const det = `<div class="detail"><dl>
+      <dt>Lugares</dt><dd>${x.pois.map((p,i)=>`<span class="chip">${i+1}. ${p[0]}</span>`).join("")}</dd>
+      <dt>Logística y traslados</dt><dd>${x.log}</dd>
+      <dt>Alojamiento</dt><dd>${x.hotel}<br><small>${x.hc} MXN por persona/noche</small></dd>
+      <dt>Transporte</dt><dd>${x.tc} MXN</dd>
+      <dt>Dinero de bolsillo</dt><dd>${x.pk} MXN</dd>
+      ${x.tip?`<dt>Tip</dt><dd>${x.tip}</dd>`:""}
+      </dl>
+      <div class="nav"><button data-go="${x.d-1}" ${x.d===1?"disabled":""}>← Anterior</button><button data-go="${x.d+1}" ${x.d===DAYS.length?"disabled":""}>Siguiente →</button></div></div>`;
+    return `<div class="card ${selected===x.d?"sel":""}" id="card${x.d}" data-d="${x.d}">
+      <div class="badge">${x.d}</div>
+      <div><div class="t">${x.title}</div>
+      <div class="d">${fmt(dayDate(x.d))} · ${CITIES[x.city].n}</div>
+      <div class="s">${x.plan}</div></div></div>${det}`;
+  }).join("");
+}
+
+$("#side").addEventListener("click",e=>{
+  const g=e.target.closest("[data-go]"); if(g){selectDay(+g.dataset.go);return}
+  const c=e.target.closest(".card"); if(c){ +c.dataset.d===selected?showAll():selectDay(+c.dataset.d) }
+});
+$("#all").onclick=showAll;
+startEl.onchange=()=>{
+  if(!startEl.value) return;
+  startDate=new Date(startEl.value+"T12:00:00");
+  try{localStorage.setItem("japon-start-v2",startEl.value)}catch(e){}
+  selected?selectDay(selected):showAll();
+};
+document.addEventListener("keydown",e=>{
+  if(e.target.tagName==="INPUT") return;
+  if(e.key==="ArrowRight"&&selected<DAYS.length) selectDay((selected||0)+1);
+  if(e.key==="ArrowLeft"&&selected>1) selectDay(selected-1);
+  if(e.key==="Escape") showAll();
+});
+
+showAll();
+</script>
+</body>
+</html>
