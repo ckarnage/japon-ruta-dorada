@@ -42,8 +42,10 @@ main{flex:1;display:flex;min-height:0}
 .chip{display:inline-block;background:var(--chip);border-radius:10px;padding:1px 8px;font-size:12px;margin:2px 3px 0 0}
 .pin{background:var(--accent);color:#fff;border:2px solid #fff;border-radius:50%;width:30px;height:30px;display:grid;place-items:center;font:700 11px sans-serif;box-shadow:0 1px 5px rgba(0,0,0,.45)}
 .pin.city{width:auto;min-width:30px;padding:0 8px;border-radius:15px;height:28px;background:#23201c;white-space:nowrap}
+.pin.hotel{background:#2e7d32;width:28px;height:28px;font-size:14px}
 .pin.poi{background:var(--gold);width:24px;height:24px;font-size:11px}
 .leaflet-popup-content{font:13px/1.4 -apple-system,sans-serif;margin:10px 12px}
+.leg.g{background:#effaf0;border-color:#2e7d32;color:#1b5e20}
 .leg{font-size:11px;background:#fffdf7;color:#23201c;border:1px solid #c9b98f;border-radius:6px;padding:1px 6px;white-space:nowrap}
 @media (max-width:760px){
   main{flex-direction:column}
@@ -79,80 +81,94 @@ const CITIES = {
   himeji:{n:"Himeji",ll:[34.8394,134.6939],trip:14}
 };
 
+const HOTELS = {
+  daimon:{n:"Sotetsu Fresa Inn Tokyo-Daimon",ll:[35.6560,139.7547]},
+  hakone:{n:"Hakone Pax Yoshino (ryokan)",ll:[35.2330,139.1000]},
+  kioto:{n:"Daiwa Roynet Hotel Kyoto Ekimae",ll:[34.9832,135.7588]},
+  osaka:{n:"karaksa hotel Osaka Namba",ll:[34.6630,135.5030]},
+  tawara:{n:"APA Hotel Asakusa Tawaramachi",ll:[35.7099,139.7915]}
+};
+// Hotel donde despiertas: el de la noche anterior (día 1: el de llegada; día 17: el de la noche 16)
+const wakeHotel = d => (DAYS[d-2]&&DAYS[d-2].h) || DAYS[d-1].h || DAYS[d-2].h;
+const km = (a,b)=>{const R=6371,r=x=>x*Math.PI/180,dl=r(b[0]-a[0]),dn=r(b[1]-a[1]);
+  const q=Math.sin(dl/2)**2+Math.cos(r(a[0]))*Math.cos(r(b[0]))*Math.sin(dn/2)**2;return 2*R*Math.asin(Math.sqrt(q));};
+const hotelLine = d => { const h=HOTELS[wakeHotel(d)], f=DAYS[d-1].pois[0]; return {h, f, dist:km(h.ll,[f[1],f[2]])}; };
+const fmtKm = k => k<10?k.toFixed(1)+" km":Math.round(k)+" km";
+
 const DAYS = [
- {d:1,city:"tokio",title:"Llegada a Narita",plan:"Llegada a Narita. Traslado a hotel y descanso.",
+ {d:1,city:"tokio",h:"daimon",title:"Llegada a Narita",plan:"Llegada a Narita. Traslado a hotel y descanso.",
   pois:[["Aeropuerto de Narita",35.7720,140.3929],["Hotel en Asakusa / Daimon",35.7148,139.7967]],
   log:"Tren Narita Express (N'EX) desde el aeropuerto hasta el centro de Tokio.",
   hotel:"Sotetsu Fresa Inn Daimon / APA Hotel Asakusa",hc:"$700 - $1,000",tc:"$325 (mitad del boleto redondo)",pk:"$1,000",
   tip:"Retirar yenes en cajeros 7-Eleven. Activar Suica/Pasmo en Apple Wallet."},
- {d:2,city:"tokio",title:"Asakusa, Ueno y Akihabara",plan:"Asakusa (Senso-ji), Parque Ueno y Akihabara.",
+ {d:2,city:"tokio",h:"daimon",title:"Asakusa, Ueno y Akihabara",plan:"Asakusa (Senso-ji), Parque Ueno y Akihabara.",
   pois:[["Senso-ji (Asakusa)",35.7148,139.7967],["Parque Ueno",35.7156,139.7745],["Akihabara",35.6984,139.7731]],
   log:"Metro/trenes locales con la tarjeta Suica.",
   hotel:"Sotetsu Fresa Inn Daimon / APA Hotel Asakusa",hc:"$700 - $1,000",tc:"$0 (saldo Suica)",pk:"$1,000",tip:""},
- {d:3,city:"tokio",title:"Meiji Gaien, Harajuku, Shibuya, Shinjuku",plan:"Túnel otoñal de Meiji Jingu Gaien, Harajuku, Shibuya y Shinjuku.",
+ {d:3,city:"tokio",h:"daimon",title:"Meiji Gaien, Harajuku, Shibuya, Shinjuku",plan:"Túnel otoñal de Meiji Jingu Gaien, Harajuku, Shibuya y Shinjuku.",
   pois:[["Meiji Jingu Gaien (túnel de ginkgos)",35.6753,139.7190],["Harajuku",35.6702,139.7027],["Shibuya",35.6595,139.7005],["Shinjuku",35.6896,139.7006]],
   log:"Metro/trenes locales con la tarjeta Suica.",
   hotel:"Sotetsu Fresa Inn Daimon / APA Hotel Asakusa",hc:"$700 - $1,000",tc:"$0 (saldo Suica)",pk:"$1,000",tip:""},
- {d:4,city:"tokio",title:"Excursión a Nikko (follaje otoñal)",plan:"Día de campo desde Tokio: Santuario Toshogu, puente Shinkyo y cascada Kegon. Regreso a Tokio por la noche.",
+ {d:4,city:"tokio",h:"daimon",title:"Excursión a Nikko (follaje otoñal)",plan:"Día de campo desde Tokio: Santuario Toshogu, puente Shinkyo y cascada Kegon. Regreso a Tokio por la noche.",
   pois:[["Asakusa (salida tren Tobu)",35.7112,139.7966],["Puente Shinkyo",36.7499,139.5985],["Santuario Toshogu",36.7581,139.5990],["Cascada Kegon",36.7388,139.5014]],
   log:"Tren Tobu Limited Express desde Asakusa a Tobu-Nikko (~2 h) y autobús Tobu hasta Chuzenji/Kegon.",
   hotel:"Sotetsu Fresa Inn Daimon / APA Hotel Asakusa (mismo hotel, regreso a Tokio)",hc:"$700 - $1,000",tc:"≈$1,200 (Nikko Pass + expreso; estimado)",pk:"$1,000",
   tip:"Salir temprano (antes de las 8:00). El día siguiente se va a Hakone: dejar maletas listas. Los montes altos de Nikko tiñen antes; verificar pronóstico de follaje."},
- {d:5,city:"hakone",title:"Tokio → Hakone",plan:"Viaje a Hakone. Teleférico, Lago Ashi y vistas del Monte Fuji.",
+ {d:5,city:"hakone",h:"hakone",title:"Tokio → Hakone",plan:"Viaje a Hakone. Teleférico, Lago Ashi y vistas del Monte Fuji.",
   pois:[["Shinjuku (salida Romancecar)",35.6896,139.7006],["Hakone-Yumoto",35.2328,139.1070],["Owakudani (teleférico)",35.2433,139.0206],["Lago Ashi",35.2050,139.0240]],
   log:"Tren Odakyu Romancecar desde Shinjuku a Hakone. Usar transportes del parque.",
   hotel:"Ryokan con Onsen (ej. Hakone Pax Yoshino)",hc:"$3,500 - $4,500 (incluye cena tradicional y desayuno)",tc:"$950 (Romancecar + Hakone Free Pass 2 días)",pk:"$500 (comidas ligeras)",
   tip:"Usar el servicio de envío de maletas (Takuhaibin) de Tokio a Kioto."},
- {d:6,city:"kioto",title:"Hakone → Kioto",plan:"Viaje a Kioto y tarde en los arcos de Fushimi Inari.",
+ {d:6,city:"kioto",h:"kioto",title:"Hakone → Kioto",plan:"Viaje a Kioto y tarde en los arcos de Fushimi Inari.",
   pois:[["Estación Odawara",35.2564,139.1551],["Estación de Kioto",34.9858,135.7588],["Fushimi Inari",34.9671,135.7727]],
   log:"Tren Bala (Shinkansen) desde Odawara hasta la estación de Kioto.",
   hotel:"Daiwa Roynet Kyoto Ekimae / APA Hotel Kyoto",hc:"$700 - $1,000",tc:"$1,550 (Shinkansen Nozomi, sencillo)",pk:"$1,000",
   tip:"A Odawara se llega bajando de Hakone; ahí se toma el tren bala."},
- {d:7,city:"kioto",title:"Kinkaku-ji, Arashiyama, Kiyomizu-dera",plan:"Pabellón Dorado, Bosque de Bambú e iluminación nocturna en Kiyomizu-dera.",
+ {d:7,city:"kioto",h:"kioto",title:"Kinkaku-ji, Arashiyama, Kiyomizu-dera",plan:"Pabellón Dorado, Bosque de Bambú e iluminación nocturna en Kiyomizu-dera.",
   pois:[["Kinkaku-ji (Pabellón Dorado)",35.0394,135.7292],["Bosque de Bambú de Arashiyama",35.0170,135.6713],["Kiyomizu-dera",34.9949,135.7850]],
   log:"Autobuses y metro de Kioto con la tarjeta Suica.",
   hotel:"Daiwa Roynet Kyoto Ekimae / APA Hotel Kyoto",hc:"$700 - $1,000",tc:"$0 (saldo Suica)",pk:"$1,000",
   tip:"Empacar bufanda: por la noche bajará a menos de 10 °C."},
- {d:8,city:"kioto",title:"Kioto clásico: Nijo, Gion y Camino de la Filosofía",plan:"Castillo Nijo, mercado Nishiki, Gion y tarde de follaje en Eikando y el Camino de la Filosofía.",
+ {d:8,city:"kioto",h:"kioto",title:"Kioto clásico: Nijo, Gion y Camino de la Filosofía",plan:"Castillo Nijo, mercado Nishiki, Gion y tarde de follaje en Eikando y el Camino de la Filosofía.",
   pois:[["Castillo Nijo",35.0142,135.7482],["Mercado Nishiki",35.0050,135.7646],["Gion",35.0037,135.7756],["Eikando",35.0147,135.7948],["Camino de la Filosofía",35.0270,135.7948]],
   log:"Autobuses y metro de Kioto con la tarjeta Suica.",
   hotel:"Daiwa Roynet Kyoto Ekimae / APA Hotel Kyoto",hc:"$700 - $1,000",tc:"$0 (saldo Suica)",pk:"$1,000",
   tip:"Eikando es de los primeros templos en teñirse de rojo; ir al final de la tarde para ver la iluminación."},
- {d:9,city:"kioto",title:"Kioto: Uji y Tofuku-ji",plan:"Mañana en Uji (templo Byodo-in y té matcha). Tarde en Tofuku-ji, uno de los templos más famosos por su follaje.",
+ {d:9,city:"kioto",h:"kioto",title:"Kioto: Uji y Tofuku-ji",plan:"Mañana en Uji (templo Byodo-in y té matcha). Tarde en Tofuku-ji, uno de los templos más famosos por su follaje.",
   pois:[["Uji (calle del matcha)",34.8888,135.8039],["Byodo-in",34.8892,135.8077],["Tofuku-ji",34.9768,135.7740]],
   log:"JR Nara Line desde la estación de Kioto a Uji (~20 min) y regreso a Tofukuji en JR/Keihan.",
   hotel:"Daiwa Roynet Kyoto Ekimae / APA Hotel Kyoto",hc:"$700 - $1,000",tc:"≈$150 (JR/Keihan; estimado)",pk:"$1,000",
   tip:"Probar helado y dulces de matcha en Uji. Tofuku-ji se llena en follaje: ir temprano o cerca del cierre."},
- {d:10,city:"kioto",title:"Kioto: Kurama–Kibune y Pontocho",plan:"Caminata otoñal entre los templos de Kurama y Kibune, al norte de Kioto. Noche en el callejón Pontocho.",
+ {d:10,city:"kioto",h:"kioto",title:"Kioto: Kurama–Kibune y Pontocho",plan:"Caminata otoñal entre los templos de Kurama y Kibune, al norte de Kioto. Noche en el callejón Pontocho.",
   pois:[["Kurama-dera",35.1203,135.7742],["Santuario Kibune",35.1596,135.7684],["Pontocho",35.0053,135.7708]],
   log:"Tren Eizan desde Demachiyanagi a Kurama; sendero de ~1.5 h hasta Kibune y bus/tren de regreso.",
   hotel:"Daiwa Roynet Kyoto Ekimae / APA Hotel Kyoto",hc:"$700 - $1,000",tc:"≈$150 (tren Eizan y bus; estimado)",pk:"$1,200 (entrada a Kurama-dera + comida en Kibune)",
   tip:"Llevar calzado cómodo: el sendero tiene escalones y raíces. Hace frío, abrigarse."},
- {d:11,city:"osaka",title:"Nara y Osaka",plan:"Mañana: ciervos en Nara. Tarde: Castillo de Osaka y noche en Dotonbori.",
+ {d:11,city:"osaka",h:"osaka",title:"Nara y Osaka",plan:"Mañana: ciervos en Nara. Tarde: Castillo de Osaka y noche en Dotonbori.",
   pois:[["Parque de Nara (ciervos)",34.6851,135.8430],["Castillo de Osaka",34.6873,135.5262],["Dotonbori",34.6687,135.5013]],
   log:"Trenes locales (JR Rapid) para saltar entre Kioto, Nara y Osaka.",
   hotel:"karaksa hotel Osaka Namba / Sotetsu Fresa Inn Osaka-Namba",hc:"$700 - $1,000",tc:"$75 (tren local Kioto–Osaka)",pk:"$1,000",
   tip:"El tren de Kioto a Osaka tarda unos 30 minutos."},
- {d:12,city:"osaka",title:"Universal Studios Japan",plan:"Día completo en Universal Studios Japan (USJ).",
+ {d:12,city:"osaka",h:"osaka",title:"Universal Studios Japan",plan:"Día completo en Universal Studios Japan (USJ).",
   pois:[["Universal Studios Japan",34.6654,135.4323]],
   log:"Tren local JR Yumesaki hasta la estación Universal City.",
   hotel:"karaksa hotel Osaka Namba / Sotetsu Fresa Inn Osaka-Namba",hc:"$700 - $1,000",tc:"$0 (saldo Suica)",pk:"$3,600 (≈$1,100 entrada + $2,000 Express Pass + $500 comida)",
   tip:"Comprar entradas y Express Pass con 2 meses de anticipación exactos (web oficial o Klook)."},
- {d:13,city:"osaka",title:"Hiroshima y Miyajima",plan:"Excursión a Hiroshima (Parque de la Paz) y la isla de Miyajima.",
+ {d:13,city:"osaka",h:"osaka",title:"Hiroshima y Miyajima",plan:"Excursión a Hiroshima (Parque de la Paz) y la isla de Miyajima.",
   pois:[["Shin-Osaka",34.7334,135.5003],["Parque de la Paz, Hiroshima",34.3955,132.4536],["Isla de Miyajima (Itsukushima)",34.2959,132.3199]],
   log:"Shinkansen Osaka–Hiroshima ida y vuelta + ferry a Miyajima.",
   hotel:"karaksa hotel Osaka Namba / Sotetsu Fresa Inn Osaka-Namba",hc:"$700 - $1,000",tc:"$2,600 (Shinkansen ida y vuelta)",pk:"$1,000",tip:""},
- {d:14,city:"osaka",title:"Castillo de Himeji y Kobe",plan:"Mañana en el Castillo de Himeji y jardín Koko-en. Tarde en Kobe: Kitano y puerto (Harborland).",
+ {d:14,city:"osaka",h:"osaka",title:"Castillo de Himeji y Kobe",plan:"Mañana en el Castillo de Himeji y jardín Koko-en. Tarde en Kobe: Kitano y puerto (Harborland).",
   pois:[["Castillo de Himeji",34.8394,134.6939],["Jardín Koko-en",34.8400,134.6970],["Barrio Kitano (Kobe)",34.6992,135.1936],["Harborland / Port Tower",34.6779,135.1862]],
   log:"JR Special Rapid de Osaka a Himeji (~1 h), luego JR a Kobe y regreso a Osaka.",
   hotel:"karaksa hotel Osaka Namba / Sotetsu Fresa Inn Osaka-Namba",hc:"$700 - $1,000",tc:"≈$450 (JR ida y vuelta; estimado)",pk:"$1,200 (entradas y comida; Kobe beef es más caro)",
   tip:"El castillo cierra a las 17:00: llegar temprano. Probar Kobe beef o yakiniku en comida, no en cena."},
- {d:15,city:"tokio",title:"Osaka → Tokio · Odaiba",plan:"Regreso matutino a Tokio. Tarde en Odaiba (Estatua Gundam).",
+ {d:15,city:"tokio",h:"tawara",title:"Osaka → Tokio · Odaiba",plan:"Regreso matutino a Tokio. Tarde en Odaiba (Estatua Gundam).",
   pois:[["Shin-Osaka",34.7334,135.5003],["Estación de Tokio",35.6812,139.7671],["Odaiba (Gundam)",35.6252,139.7753]],
   log:"Shinkansen directo de Shin-Osaka a Tokio.",
   hotel:"APA Hotel Asakusa Tawaramachi / Hotel SUI Ginza",hc:"$700 - $1,000",tc:"$1,850 (Shinkansen Nozomi, sencillo)",pk:"$1,000",
   tip:"Pedir asiento E (lado izquierdo) para intentar ver el Monte Fuji."},
- {d:16,city:"tokio",title:"teamLab Planets y compras",plan:"Arte inmersivo (teamLab Planets) y últimas compras en Ginza o Tsukiji.",
+ {d:16,city:"tokio",h:"tawara",title:"teamLab Planets y compras",plan:"Arte inmersivo (teamLab Planets) y últimas compras en Ginza o Tsukiji.",
   pois:[["teamLab Planets",35.6490,139.7897],["Tsukiji",35.6655,139.7707],["Ginza",35.6717,139.7640]],
   log:"Metro con la tarjeta Suica.",
   hotel:"APA Hotel Asakusa Tawaramachi / Hotel SUI Ginza",hc:"$700 - $1,000",tc:"$0 (saldo Suica)",pk:"$1,000",
@@ -220,6 +236,11 @@ function drawOverview(){
     const mid=[(A[0]+B[0])/2,(A[1]+B[1])/2];
     L.marker(mid,{icon:L.divIcon({className:"",html:`<div class="leg">${l.lbl}</div>`,iconSize:null}),interactive:false}).addTo(overview);
   });
+  Object.keys(HOTELS).forEach(k=>{
+    const H=HOTELS[k], nights=DAYS.filter(x=>x.h===k).map(x=>x.d);
+    L.marker(H.ll,{icon:icon("🛏","hotel"),zIndexOffset:500}).addTo(overview)
+      .bindPopup(`<b>🛏 ${H.n}</b><br>Noches: días ${rangeLabel(nights)} (${nights.length})<br><small>Ubicación aproximada</small>`);
+  });
   Object.keys(CITIES).forEach(k=>{
     const ds=cityDays(k);
     const c=CITIES[k]; const label = ds.length?`${c.n} · D${rangeLabel(ds)}`:`${c.n} · D${c.trip}`;
@@ -246,8 +267,13 @@ function selectDay(n){
     L.marker([p[1],p[2]],{icon:icon(i+1,"poi")}).addTo(dayLayer)
       .bindPopup(`<b>${p[0]}</b><br>Día ${n} · ${fmt(dayDate(n))}`);
   });
-  const b=L.latLngBounds(pts);
-  if(pts.length>1) map.fitBounds(b.pad(.3),{maxZoom:14,animate:true}); else map.setView(pts[0],14);
+  const hl=hotelLine(n), hp=[hl.h.ll, [hl.f[1],hl.f[2]]];
+  L.polyline(hp,{color:"#2e9d4f",weight:3,dashArray:"2 8",lineCap:"round"}).addTo(dayLayer);
+  L.marker(hl.h.ll,{icon:icon("🛏","hotel"),zIndexOffset:500}).addTo(dayLayer)
+    .bindPopup(`<b>🛏 ${hl.h.n}</b><br>Hotel de la noche anterior<br><small>Ubicación aproximada</small>`);
+  L.marker([(hp[0][0]+hp[1][0])/2,(hp[0][1]+hp[1][1])/2],{icon:L.divIcon({className:"",html:`<div class="leg g">${fmtKm(hl.dist)}</div>`,iconSize:null}),interactive:false}).addTo(dayLayer);
+  const b=L.latLngBounds(pts.concat([hl.h.ll]));
+  map.fitBounds(b.pad(.3),{maxZoom:14,animate:true});
   render();
   const el=document.getElementById("card"+n); if(el) el.scrollIntoView({block:"nearest",behavior:"smooth"});
 }
@@ -258,6 +284,7 @@ function render(){
       <dt>Lugares</dt><dd>${x.pois.map((p,i)=>`<span class="chip">${i+1}. ${p[0]}</span>`).join("")}</dd>
       <dt>Logística y traslados</dt><dd>${x.log}</dd>
       <dt>Alojamiento</dt><dd>${x.hotel}<br><small>${x.hc} MXN por persona/noche</small></dd>
+      <dt>Del hotel al primer lugar</dt><dd>${(()=>{const q=hotelLine(x.d);return `🛏 ${q.h.n} → ${q.f[0]}: <b>${fmtKm(q.dist)}</b> en línea recta`})()}</dd>
       <dt>Transporte</dt><dd>${x.tc} MXN</dd>
       <dt>Dinero de bolsillo</dt><dd>${x.pk} MXN</dd>
       ${x.tip?`<dt>Tip</dt><dd>${x.tip}</dd>`:""}
